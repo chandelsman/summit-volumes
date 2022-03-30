@@ -37,3 +37,9 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+
+# Apple Desktop Services files
+.DS_Store
+
+# Files containing PHI
+/data

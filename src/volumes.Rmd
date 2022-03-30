@@ -1,0 +1,96 @@
+---
+title: "Summit Pathology Volumes 2015-2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r libraries, include=FALSE}
+library(tidyverse)
+library(lubridate)
+library(here)
+```
+
+```{r import-data, include=FALSE}
+# Import raw data --------------------------------------------------------
+# All cases from 2015-01-01 - 2022-03-27 ---------------------------------
+raw_counts <-
+  readr::read_delim(
+    here("data", "cases-2015.01.01-2022.03.27.csv"),
+    delim = ",",
+    col_types = cols(
+      Accession = col_double(),
+      `Result ID` = col_character(),
+      `Client ID` = col_character(),
+      `Client Name` = col_character(),
+      `Patient Name` = col_character(),
+      `Patient ID` = col_character(),
+      `Date of Birth` = col_datetime(),
+      `Result Created Time` = col_datetime(),
+      `Report Released Time` = col_datetime(),
+      GUID = col_character(),
+      `CPT Code` = col_character(),
+      Quantity = col_double(),
+      `CPT Created Time` = col_datetime()
+    ),
+    na = "NULL"
+  )
+```
+
+```{r summarize-data, include=FALSE}
+# Count unique accessions
+accessions <- 
+raw_counts %>%
+  filter(`Result Created Time` < "2022-01-01 00:00:01" & 
+           `Report Released Time` < "2022-01-01 00:00:01") %>% 
+  mutate(yr = year(floor_date(`Report Released Time`, unit = "year"))) %>%
+  group_by(yr) %>% 
+  summarise(n_accessions = n_distinct(Accession))
+
+# Count unique Result IDs
+result_id <- 
+  raw_counts %>%
+  filter(`Result Created Time` < "2022-01-01 00:00:01" & 
+           `Report Released Time` < "2022-01-01 00:00:01") %>% 
+  mutate(yr = year(floor_date(`Report Released Time`, unit = "year"))) %>%
+  group_by(yr) %>% 
+  summarise(n_result_ids = n_distinct(`Result ID`))
+
+# Count total CPT codes released excluding 80000 (no charge)
+cpt_codes <- 
+  raw_counts %>%
+  filter(`Result Created Time` < "2022-01-01 00:00:01" & 
+           `Report Released Time` < "2022-01-01 00:00:01" & 
+           `CPT Code` != "80000") %>% 
+  mutate(yr = year(floor_date(`Report Released Time`, unit = "year"))) %>%
+  group_by(yr) %>% 
+  summarise(n_cpt = sum(Quantity, na.rm = TRUE))
+
+# Combine accession, result ID, and CPT counts
+volumes <-
+  tibble(accessions$yr,
+         accessions$n_accessions,
+         result_id$n_result_ids,
+         cpt_codes$n_cpt) %>%
+  rename(
+    Year = "accessions$yr",
+    Accessions = "accessions$n_accessions",
+    `Result IDs` = "result_id$n_result_ids",
+    `CPT Codes` = "cpt_codes$n_cpt"
+  ) %>% 
+  mutate(Year = as.character(Year))
+```
+
+## Data included in analysis
+
+All cases signed out between 01-01-2015 and 12-31-2021 were exported from LigoLab and included in the analysis. There were `r  raw_counts %>% summarize(n()) %>% prettyNum(big.mark = ",", scientific = FALSE)` total cases signed out, including cases re-released with revisions. Annual volumes were calculated as the total number of unique accessions, unique Result IDs, and the total count of CPT codes. The 80000 (non-billable) CPT code was excluded from the annual CPT code volume calculations. Table 1 below summarizes volumes by these three metrics from 2015 -- 2021.
+
+```{r summary-table, include=TRUE}
+knitr::kable(volumes, format.args = list(big.mark = ",",
+  scientific = FALSE), caption = "**Table1. Annual Volumes by Accessions, Result IDs, and CPT Codes**")
+
+gt::gt(volumes)
+```
+
