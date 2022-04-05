@@ -1,6 +1,6 @@
 ---
 title: "Summit Pathology Volumes 2015-2021"
-output: pdf_document
+output: html_document
 ---
 
 ```{r setup, include=FALSE}
@@ -59,7 +59,7 @@ result_id <-
   summarise(n_result_ids = n_distinct(`Result ID`))
 
 # Count total CPT codes released excluding 80000 (no charge)
-cpt_codes <- 
+cpt_codes_no_80000 <- 
   raw_counts %>%
   filter(`Result Created Time` < "2022-01-01 00:00:01" & 
            `Report Released Time` < "2022-01-01 00:00:01" & 
@@ -68,8 +68,30 @@ cpt_codes <-
   group_by(yr) %>% 
   summarise(n_cpt = sum(Quantity, na.rm = TRUE))
 
+# Count all CPT codes
+cpt_codes <- 
+  raw_counts %>%
+  filter(`Result Created Time` < "2022-01-01 00:00:01" & 
+           `Report Released Time` < "2022-01-01 00:00:01") %>% 
+  mutate(yr = year(floor_date(`Report Released Time`, unit = "year"))) %>%
+  group_by(yr) %>% 
+  summarise(n_cpt = sum(Quantity, na.rm = TRUE))
+
 # Combine accession, result ID, and CPT counts
-volumes <-
+volumes_no_80000 <-
+  tibble(accessions$yr,
+         accessions$n_accessions,
+         result_id$n_result_ids,
+         cpt_codes_no_80000$n_cpt) %>%
+  rename(
+    Year = "accessions$yr",
+    Accessions = "accessions$n_accessions",
+    `Result IDs` = "result_id$n_result_ids",
+    `CPT Codes` = "cpt_codes_no_80000$n_cpt"
+  ) %>% 
+  mutate(Year = as.character(Year))
+
+volumes_80000 <- 
   tibble(accessions$yr,
          accessions$n_accessions,
          result_id$n_result_ids,
@@ -87,10 +109,30 @@ volumes <-
 
 All cases signed out between 01-01-2015 and 12-31-2021 were exported from LigoLab and included in the analysis. There were `r  raw_counts %>% summarize(n()) %>% prettyNum(big.mark = ",", scientific = FALSE)` total cases signed out, including cases re-released with revisions. Annual volumes were calculated as the total number of unique accessions, unique Result IDs, and the total count of CPT codes. The 80000 (non-billable) CPT code was excluded from the annual CPT code volume calculations. Table 1 below summarizes volumes by these three metrics from 2015 -- 2021.
 
-```{r summary-table, include=TRUE}
-knitr::kable(volumes, format.args = list(big.mark = ",",
-  scientific = FALSE), caption = "**Table1. Annual Volumes by Accessions, Result IDs, and CPT Codes**")
+```{r summary-table-without-80000, include=TRUE}
+knitr::kable(volumes_no_80000, format.args = list(big.mark = ",",
+  scientific = FALSE), caption = "**Table 1. Annual Volumes by Accessions, Result IDs, and CPT Codes (80000 removed)**")
 
-gt::gt(volumes)
+# gt::gt(volumes)
 ```
+
+To fully capture the amount of work performed idependent of realized revenue, the same data are presented below (Table 2) with the 80000 CPT code included.
+
+```{r summary-table-with-80000, include=TRUE}
+knitr::kable(volumes_80000, format.args = list(big.mark = ",",
+  scientific = FALSE), caption = "**Table 2. Annual Volumes by Accessions, Result IDs, and CPT Codes (80000 included**")
+```
+
+The number of results released has increased from **`r result_id$n_result_ids[ 1]`** to **`r result_id$n_result_ids[7]`** or by **`r result_id$n_result_ids[7] - result_id$n_result_ids[ 1]`** from 2015--2021.
+
+```{r annual-results, include=TRUE}
+ggplot(result_id, aes(x = yr, y = n_result_ids, fill = yr)) +
+  geom_bar(stat = "identity") +
+  theme_light() +
+  labs(x = "Year",
+       y = "",
+       title = "Figure 1. Annual Volumes",
+       subtitle = "Number of Unique Result IDs Released")
+```
+
 
