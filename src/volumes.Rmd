@@ -1,6 +1,8 @@
 ---
 title: "Summit Pathology Volumes 2015-2021"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -103,6 +105,117 @@ volumes_80000 <-
     `CPT Codes` = "cpt_codes$n_cpt"
   ) %>% 
   mutate(Year = as.character(Year))
+
+# SPL CPT codes
+  spl_codes <-
+  tibble(
+    cpt = c(
+      "88175",
+      "87624",
+      "87801",
+      "87491",
+      "87591",
+      "88305",
+      "88112",
+      "88141",
+      "87661",
+      "G0416",
+      "87481",
+      "87511",
+      "88142",
+      "87660",
+      "87480",
+      "87510",
+      "88173",
+      "88312",
+      "G0124",
+      "88112",
+      "87529",
+      "88305",
+      "88112",
+      "88304",
+      "88360",
+      "88341",
+      "87491",
+      "87591",
+      "88342",
+      "G0123",
+      "87798",
+      "G0145",
+      "88104",
+      "87661",
+      "87480",
+      "87481",
+      "87510",
+      "87511",
+      "57591",
+      "87660",
+      "87661",
+      "87801",
+      "88108",
+      "88342",
+      "88344",
+      "88365",
+      "89060",
+      "89060",
+      "87625"
+    ),
+    exclude = c(
+      "no",
+      "no",
+      "no",
+      "no",
+      "no",
+      "no",
+      "no",
+      "yes",
+      "no",
+      "no",
+      "no",
+      "no",
+      "no",
+      "no",
+      "no",
+      "no",
+      "26",
+      "no",
+      "no",
+      "26",
+      "no",
+      "26",
+      "no",
+      "no",
+      "26",
+      "26",
+      "no",
+      "no",
+      "26",
+      "no",
+      "no",
+      "no",
+      "no",
+      "no",
+      "no",
+      "no",
+      "no",
+      "no",
+      "no",
+      "yes",
+      "no",
+      "no",
+      "no",
+      "yes",
+      "no",
+      "no",
+      "no",
+      "no",
+      "no"
+    )
+  ) %>% 
+    filter(exclude == "no") %>% 
+    distinct(cpt)
+  
+volumes_spl <- 
 ```
 
 ## Data included in analysis
